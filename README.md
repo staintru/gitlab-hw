@@ -57,7 +57,7 @@ end
 VAGRANT_EXPERIMENTAL="disk" vagrant up
 ```
 * `В браузере переходим на http://gitlab.localdomain или указываем адрес 192.168.56.10 и видим страницу входа GitLab`
-![GitLab](https://github.com/staintru/gitlab-hw/auth.png)`
+![GitLab](https://github.com/staintru/gitlab-hw/blob/main/auth.png)`
 * `Находясь в директории, в которой запускали vagrant, вводим команду`
 ```
 vagrant ssh
@@ -65,7 +65,7 @@ vagrant ssh
 `попадаем на созданную ВМ. Там переходим в каталок /etc/gitlab и открываем файл initial_root_password, где храниться пароль Gitlab`
 `На странице http://gitlab.localdomain вводим логин root и пароль указанный в файле`
 `Попадаем "внутрь" видим отсутствие проектов`
-![Пустой GitLab](https://github.com/staintru/gitlab-hw/GitLab.png)
+![Пустой GitLab](https://github.com/staintru/gitlab-hw/blob/main/GitLab.png)
 * `Создаем новый пустой проект, вносим его в список удаленных репозиториев,`
 ```
 git remote add my_git http://192.168.56.10/root/my_project.git
@@ -82,12 +82,12 @@ docker run -ti --rm --name gitlab-runner \
      -v /var/run/docker.sock:/var/run/docker.sock \
      gitlab/gitlab-runner:latest register
 ```
-![runner](https://github.com/staintru/gitlab-hw/runner_reg.png)
+![runner](https://github.com/staintru/gitlab-hw/blob/main/runner_reg.png)
 * `Вносим изменения в файле конфигурации srv/gitlab-runner/config.toml на созданной ВМ путем изменения строки`
 ```
 volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock"]
 ```
-![runner config](https://github.com/staintru/gitlab-hw/runner_conf.png)
+![runner config](https://github.com/staintru/gitlab-hw/blob/main/runner_conf.png)
 * `Запускаем раннер на созданной ВМ`
 ```
 docker run -d --name gitlab-runner --restart always \
@@ -96,9 +96,9 @@ docker run -d --name gitlab-runner --restart always \
      -v /var/run/docker.sock:/var/run/docker.sock \
      gitlab/gitlab-runner:latest
 ```
-![runner run](https://github.com/staintru/gitlab-hw/runner_start.png)
+![runner run](https://github.com/staintru/gitlab-hw/blob/main/runner_start.png)
 * `Проверяем`
-![runner](https://github.com/staintru/gitlab-hw/runner.png)
+![runner](https://github.com/staintru/gitlab-hw/blob/main/runner.png)
 ---
 
 ### Задание 2
@@ -133,12 +133,12 @@ build:
 ```
 git push my_git2
 ```
-![my_git2](https://github.com/staintru/gitlab-hw/my_git.png)
+![my_git2](https://github.com/staintru/gitlab-hw/blob/main/my_git.png)
 
 * `Вносим правки`
-![Pipeline_new](https://github.com/staintru/gitlab-hw/Pipeline_ch.png)
+![Pipeline_new](https://github.com/staintru/gitlab-hw/blob/main/Pipeline_ch.png)
 * `Повторная проверка`
-![Pipeline2](https://github.com/staintru/gitlab-hw/Pipeline.png)
+![Pipeline2](https://github.com/staintru/gitlab-hw/blob/main/Pipeline.png)
 
 
 ---
