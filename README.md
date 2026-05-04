@@ -1,27 +1,5 @@
 # Домашнее задание к занятию «GitLab» - Шевляков Алексей
 
-
-### Инструкция по выполнению домашнего задания
-
-   1. Сделайте `fork` данного репозитория к себе в Github и переименуйте его по названию или номеру занятия, например, https://github.com/имя-вашего-репозитория/git-hw или  https://github.com/имя-вашего-репозитория/7-1-ansible-hw).
-   2. Выполните клонирование данного репозитория к себе на ПК с помощью команды `git clone`.
-   3. Выполните домашнее задание и заполните у себя локально этот файл README.md:
-      - впишите вверху название занятия и вашу фамилию и имя
-      - в каждом задании добавьте решение в требуемом виде (текст/код/скриншоты/ссылка)
-      - для корректного добавления скриншотов воспользуйтесь [инструкцией "Как вставить скриншот в шаблон с решением](https://github.com/netology-code/sys-pattern-homework/blob/main/screen-instruction.md)
-      - при оформлении используйте возможности языка разметки md (коротко об этом можно посмотреть в [инструкции  по MarkDown](https://github.com/netology-code/sys-pattern-homework/blob/main/md-instruction.md))
-   4. После завершения работы над домашним заданием сделайте коммит (`git commit -m "comment"`) и отправьте его на Github (`git push origin`);
-   5. Для проверки домашнего задания преподавателем в личном кабинете прикрепите и отправьте ссылку на решение в виде md-файла в вашем Github.
-   6. Любые вопросы по выполнению заданий спрашивайте в чате учебной группы и/или в разделе “Вопросы по заданию” в личном кабинете.
-   
-Желаем успехов в выполнении домашнего задания!
-   
-### Дополнительные материалы, которые могут быть полезны для выполнения задания
-
-1. [Руководство по оформлению Markdown файлов](https://gist.github.com/Jekins/2bf2d0638163f1294637#Code)
-
----
-
 ### Задание 1
 Что нужно сделать:
 
@@ -30,15 +8,137 @@
 3. Зарегистрируйте gitlab-runner для этого проекта и запустите его в режиме Docker. Раннер можно регистрировать и запускать на той же виртуальной машине, на которой запущен GitLab.
 - В качестве ответа в репозиторий шаблона с решением добавьте скриншоты с настройками раннера в проекте.
 
+##### Решение 1
+
+* `Выполняем клонирование репозитория с шаблоном ДЗ к себе на ПК с помощью команды ***git clone***.`
+```
+git clone https://github.com/staintru/gitlab-hw/
+```
+* `Устанавливаем VirtualBox`
+```
+sudo apt install virtualbox
+```
+* `Находим и скачиваем пакет Vagrant`
+[можно отсюда](https://hashicorp-releases.yandexcloud.net/vagrant/2.4.9/vagrant_2.4.9-1_amd64.deb)
+* `Устанавливаем Vagrant`
+```
+sudo dpkg -i vagrant_2.4.9-1_amd64.deb
+```
+* `Редактируем Vagrantfile`
+```
+Vagrant.configure("2") do |config|
+  ENV['VAGRANT_SERVER_URL'] = 'http://vagrant.elab.pro'
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.network "private_network", ip: "192.168.56.10"
+  config.vm.disk :disk, size: "15GB", primary: true
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "6144"
+  end
+  config.vm.provision "shell", inline: <<-SHELL
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y docker.io docker-compose
+    apt-get install -y curl openssh-server ca-certificates tzdata perl
+    curl -s https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | sudo bash
+    sudo EXTERNAL_URL="http://gitlab.localdomain" apt-get -y install gitlab-ce
+    docker pull gitlab/gitlab-runner:latest
+    docker pull sonarsource/sonar-scanner-cli:latest
+    docker pull golang:1.17
+    docker pull docker:latest
+    sysctl vm.max_map_count=262144
+    echo -e "192.168.56.10\tubuntu-bionic\tubuntu-bionic" | >> /etc/hosts
+  SHELL
+end
+```
+* `Запускаем vagrant дожидаемся окончания процесса`
+
+
+```
+VAGRANT_EXPERIMENTAL="disk" vagrant up
+```
+* `В браузере переходим на http://gitlab.localdomain или указываем адрес 192.168.56.10 и видим страницу входа GitLab`
+![GitLab](https://github.com/staintru/gitlab-hw/auth.png)`
+* `Находясь в директории, в которой запускали vagrant, вводим команду`
+```
+vagrant ssh
+```
+`попадаем на созданную ВМ. Там переходим в каталок /etc/gitlab и открываем файл initial_root_password, где храниться пароль Gitlab`
+`На странице http://gitlab.localdomain вводим логин root и пароль указанный в файле`
+`Попадаем "внутрь" видим отсутствие проектов`
+![Пустой GitLab](https://github.com/staintru/gitlab-hw/GitLab.png)
+* `Создаем новый пустой проект, вносим его в список удаленных репозиториев,`
+```
+git remote add my_git http://192.168.56.10/root/my_project.git
+```
+`заливаем в него клон`
+```
+git push my_git
+```
+* `Регистрируем раннер на созданной ВМ`
+```
+docker run -ti --rm --name gitlab-runner \
+     --network host \
+     -v /srv/gitlab-runner/config:/etc/gitlab-runner \
+     -v /var/run/docker.sock:/var/run/docker.sock \
+     gitlab/gitlab-runner:latest register
+```
+![runner](https://github.com/staintru/gitlab-hw/runner_reg.png)
+* `Вносим изменения в файле конфигурации srv/gitlab-runner/config.toml на созданной ВМ путем изменения строки`
+```
+volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock"]
+```
+![runner config](https://github.com/staintru/gitlab-hw/runner_conf.png)
+* `Запускаем раннер на созданной ВМ`
+```
+docker run -d --name gitlab-runner --restart always \
+     --network host \
+     -v /srv/gitlab-runner/config:/etc/gitlab-runner \
+     -v /var/run/docker.sock:/var/run/docker.sock \
+     gitlab/gitlab-runner:latest
+```
+![runner run](https://github.com/staintru/gitlab-hw/runner_start.png)
+* `Проверяем`
+![runner](https://github.com/staintru/gitlab-hw/runner.png)
 ---
 
 ### Задание 2
-Что нужно сделать:
+`Запушьте репозиторий на GitLab, изменив origin. Это изучалось на занятии по Git.`
+`Создайте .gitlab-ci.yml, описав в нём все необходимые, на ваш взгляд, этапы.`
 
-1. Запушьте репозиторий на GitLab, изменив origin. Это изучалось на занятии по Git.
-2. Создайте .gitlab-ci.yml, описав в нём все необходимые, на ваш взгляд, этапы.
-   
-В качестве ответа в шаблон с решением добавьте:
-- файл gitlab-ci.yml для своего проекта или вставьте код в соответствующее поле в шаблоне;
-- скриншоты с успешно собранными сборками.
+##### Решение
 
+* `Меняем origin`
+```
+git remote rename my_git my_git2
+```
+* `Создаем файл .gitlab-ci.yml с наполнением:`
+```
+stages:
+  - test
+  - build
+
+test:
+  stage: test
+  image: golang:1.17
+  script: 
+   - go test .
+
+build:
+  stage: build
+  image: docker:latest
+  script:
+   - docker build .
+```
+* `Пушим с новым origin`
+```
+git push my_git2
+```
+![my_git2](https://github.com/staintru/gitlab-hw/my_git.png)
+
+* `Вносим правки`
+![Pipeline_new](https://github.com/staintru/gitlab-hw/Pipeline_ch.png)
+* `Повторная проверка`
+![Pipeline2](https://github.com/staintru/gitlab-hw/Pipeline.png)
+
+
+---
